@@ -11,65 +11,66 @@ display_header() {
     tput civis
 
     cat << 'EOF'
-╔══════════════════════════════════════════════════════════════════════════════════════╗
-║                                  KINGCLOUD                                           ║
-║                         VIRTUAL MACHINE MANAGER                                      ║
-╚══════════════════════════════════════════════════════════════════════════════════════╝
+                         👑
+              ╔══════════════════════╗
+              ║      KINGCLOUD       ║
+              ╚══════════════════════╝
+           VIRTUAL MACHINE MANAGER
 EOF
 
     echo
-    printf "\e[1;35m"
+    printf "\e[1;34m"
     printf "══════════════════════════════════════════════════════════════════════════════════════\n"
     printf "\e[0m"
 
-    printf "\e[1;37m"
+    printf "\e[1;33m"
     printf "                     PROFESSIONAL VIRTUAL MACHINE CONTROL CENTER\n"
-    printf "\e[1;90m"
+    printf "\e[0;37m"
     printf "                    Powered by QEMU • KVM • Cloud-Init • Linux\n"
     printf "\e[0m"
 
     echo
 
-    printf "\e[1;36mBoot Sequence\e[0m\n"
+    printf "\e[1;33mBoot Sequence\e[0m\n"
     printf "────────────────────────────────────────────────────────────────────────────────────\n"
 
     for i in {1..50}; do
-        printf "\e[1;32m█\e[0m"
+        printf "\e[1;33m█\e[0m"
         sleep 0.015
     done
-    printf " \e[1;32m100%%\e[0m\n\n"
+    printf " \e[1;33m100%%\e[0m\n\n"
 
-    printf "\e[1;32m✔\e[0m Loading Hypervisor Engine............... \e[1;36mONLINE\e[0m\n"
+    printf "\e[1;33m✔\e[0m Loading Hypervisor Engine............... \e[1;33mONLINE\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Detecting CPU Virtualization............ \e[1;36mSUPPORTED\e[0m\n"
+    printf "\e[1;33m✔\e[0m Detecting CPU Virtualization............ \e[1;33mSUPPORTED\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Initializing Cloud-Init................. \e[1;36mREADY\e[0m\n"
+    printf "\e[1;33m✔\e[0m Initializing Cloud-Init................. \e[1;33mREADY\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Loading Storage Manager................. \e[1;36mREADY\e[0m\n"
+    printf "\e[1;33m✔\e[0m Loading Storage Manager................. \e[1;33mREADY\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Verifying Network Stack................. \e[1;36mONLINE\e[0m\n"
+    printf "\e[1;33m✔\e[0m Verifying Network Stack................. \e[1;33mONLINE\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Scanning Existing Virtual Machines...... \e[1;36mCOMPLETE\e[0m\n"
+    printf "\e[1;33m✔\e[0m Scanning Existing Virtual Machines...... \e[1;33mCOMPLETE\e[0m\n"
     sleep 0.05
-    printf "\e[1;32m✔\e[0m Loading Configuration................... \e[1;36mDONE\e[0m\n"
-
-    echo
-
-    printf "\e[1;35m────────────────────────────────────────────────────────────────────────────────────\e[0m\n"
-
-    printf "\e[1;36m Hostname      \e[0m : %s\n" "$(hostname)"
-    printf "\e[1;36m User          \e[0m : %s\n" "$(whoami)"
-    printf "\e[1;36m Kernel        \e[0m : %s\n" "$(uname -r)"
-    printf "\e[1;36m Architecture  \e[0m : %s\n" "$(uname -m)"
-    printf "\e[1;36m Date          \e[0m : %s\n" "$(date '+%d %b %Y')"
-    printf "\e[1;36m Time          \e[0m : %s\n" "$(date '+%I:%M:%S %p')"
-
-    printf "\e[1;35m────────────────────────────────────────────────────────────────────────────────────\e[0m\n"
+    printf "\e[1;33m✔\e[0m Loading Configuration................... \e[1;33mDONE\e[0m\n"
 
     echo
-    printf "\e[1;32m                  KINGCLOUD VM MANAGER v5.0\e[0m\n"
-    printf "\e[1;90m               Cloud Virtualization Platform\e[0m\n"
-    printf "\e[1;35m                    Built for KingCloud • Credit: Azmal\e[0m\n"
+
+    printf "\e[1;34m────────────────────────────────────────────────────────────────────────────────────\e[0m\n"
+
+    printf "\e[1;33m Hostname      \e[0m : %s\n" "$(hostname)"
+    printf "\e[1;33m User          \e[0m : %s\n" "$(whoami)"
+    printf "\e[1;33m Kernel        \e[0m : %s\n" "$(uname -r)"
+    printf "\e[1;33m Architecture  \e[0m : %s\n" "$(uname -m)"
+    printf "\e[1;33m Date          \e[0m : %s\n" "$(date '+%d %b %Y')"
+    printf "\e[1;33m Time          \e[0m : %s\n" "$(date '+%I:%M:%S %p')"
+
+    printf "\e[1;34m────────────────────────────────────────────────────────────────────────────────────\e[0m\n"
+
+    echo
+    printf "\e[1;33m                  KINGCLOUD VM MANAGER v5.0\e[0m\n"
+    printf "\e[0;37m               Cloud Virtualization Platform\e[0m\n"
+    printf "\e[1;34m                    Built for KingCloud • Credit: Azmal\e[0m\n"
     echo
 }
 
@@ -79,10 +80,10 @@ print_status() {
     local message=$2
     
     case $type in
-        "INFO") echo -e "\033[1;34m[INFO]\033[0m $message" ;;
+        "INFO") echo -e "\033[1;33m[INFO]\033[0m $message" ;;
         "WARN") echo -e "\033[1;33m[WARN]\033[0m $message" ;;
         "ERROR") echo -e "\033[1;31m[ERROR]\033[0m $message" ;;
-        "SUCCESS") echo -e "\033[1;32m[SUCCESS]\033[0m $message" ;;
+        "SUCCESS") echo -e "\033[1;33m[SUCCESS]\033[0m $message" ;;
         "INPUT") echo -e "\033[1;36m[INPUT]\033[0m $message" ;;
         *) echo "[$type] $message" ;;
     esac
@@ -607,6 +608,7 @@ edit_vm_config() {
                 5)
                     while true; do
                         read -p "$(print_status "INPUT" "Enable GUI mode? (y/n, current: $GUI_MODE): ")" gui_input
+
                         gui_input="${gui_input:-}"
                         if [[ "$gui_input" =~ ^[Yy]$ ]]; then 
                             GUI_MODE=true
@@ -796,8 +798,8 @@ main_menu() {
             echo
         fi
         
-        printf "\e[1;35m╭──────────────────────── KINGCLOUD CONTROL PANEL ────────────────────────╮\e[0m\n"
-        printf "\e[1;35m╰─────────────────────────────────────────────────────────────────────────╯\e[0m\n"
+        printf "\e[1;34m╭──────────────────────── KINGCLOUD CONTROL PANEL ────────────────────────╮\e[0m\n"
+        printf "\e[1;34m╰─────────────────────────────────────────────────────────────────────────╯\e[0m\n"
         echo
         echo "  1) Create a new VM"
         if [ $vm_count -gt 0 ]; then
@@ -812,8 +814,8 @@ main_menu() {
         echo "  0) Exit"
         echo
         
-        printf "\e[1;90m─────────────────────────────────────────────────────────────────────────\e[0m\n"
-        printf "\e[1;35mKingCloud\e[0m  •  Azmal Edition\n"
+        printf "\e[0;37m─────────────────────────────────────────────────────────────────────────\e[0m\n"
+        printf "\e[1;34mKingCloud\e[0m  •  Azmal Edition\n"
         echo
         read -p "$(print_status "INPUT" "Enter your choice: ")" choice
         
@@ -928,3 +930,4 @@ declare -A OS_OPTIONS=(
 
 # Start the main menu
 main_menu
+          
