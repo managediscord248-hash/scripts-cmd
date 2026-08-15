@@ -5,11 +5,13 @@ clear 2>/dev/null || true
 
 cat <<'EOF'
 
- _  ___ _   _  ____   ____ _     ___  _   _  ____
-| |/ / | | | |/ ___| / ___| |   / _ \| | | |  _ \
-| ' /| | | | | |  _ | |   | |  | | | | | | | | |
-| . \| |_| | |_| || |___| |__| |_| | |_| | | | |
-|_|\_\\___/ \____| \____|_____\___/ \___/|_| |_|
+                 👑
+
+  _  ___ _   _  ____   ____ _     ___  _   _
+ | |/ / | | | |/ ___| / ___| |   / _ \| | | |
+ | ' /| | | | | |  _ | |   | |  | | | | | | |
+ | . \| |_| | |_| || |___| |__| |_| | |_| |
+ |_|\_\\___/ \____| \____|_____\___/ \___/
 
 ================================================
               KINGCLOUD • TERMIUS
@@ -17,18 +19,32 @@ cat <<'EOF'
 
 EOF
 
-echo "[1/7] Updating packages..."
-apt update
+loading() {
+    msg="$1"
+    for i in 1 2 3; do
+        printf "\r👑 KINGCLOUD $msg."
+        sleep 0.3
+        printf "\r👑 KINGCLOUD $msg.."
+        sleep 0.3
+        printf "\r👑 KINGCLOUD $msg..."
+        sleep 0.3
+    done
+    echo
+}
 
-echo "[2/7] Installing required packages..."
-apt install -y curl bash sudo openssh-server iproute2
+loading "Updating packages"
+apt update >/dev/null 2>&1
 
-echo "[3/7] Installing Tailscale..."
+loading "Installing required packages"
+apt install -y curl bash sudo openssh-server iproute2 >/dev/null 2>&1
+
+loading "Installing Tailscale"
 if ! command -v tailscale >/dev/null 2>&1; then
-    curl -fsSL https://tailscale.com/install.sh | sh
+    curl -fsSL https://tailscale.com/install.sh | sh >/dev/null 2>&1
 fi
 
-echo "[4/7] Starting Tailscale without systemd..."
+loading "Starting Tailscale"
+
 mkdir -p /var/run/tailscale /var/lib/tailscale
 pkill tailscaled 2>/dev/null || true
 
@@ -39,18 +55,18 @@ tailscaled \
 
 sleep 3
 
-echo "[5/7] Connecting Tailscale..."
 echo
 echo "Open the authentication link if Tailscale asks for one."
 echo
+
 tailscale up
 
 echo
-echo "[6/7] Setting root password..."
+loading "Setting root password"
 passwd root
 
 echo
-echo "[7/7] Configuring SSH..."
+loading "Configuring SSH"
 
 mkdir -p /run/sshd
 
@@ -79,11 +95,7 @@ clear 2>/dev/null || true
 
 cat <<EOF
 
- _  ___ _   _  ____   ____ _     ___  _   _  ____
-| |/ / | | | |/ ___| / ___| |   / _ \| | | |  _ \
-| ' /| | | | | |  _ | |   | |  | | | | | | | | |
-| . \| |_| | |_| || |___| |__| |_| | |_| | | | |
-|_|\_\\___/ \____| \____|_____\___/ \___/|_| |_|
+                 👑
 
 ================================================
               KINGCLOUD • TERMIUS
@@ -107,18 +119,7 @@ cat <<EOF
    ONLINE
 
 ================================================
-              CONNECTION INFO
+             ⚡ Powered by KingCloud
 ================================================
-
-Address  : $TS_IP
-Username : root
-Port     : 22
-
-================================================
-            ⚡ Powered by KingCloud
-================================================
-
-⚠️ Keep your root password private.
-⚠️ Keep your Tailscale account secure.
 
 EOF
