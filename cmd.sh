@@ -29,7 +29,8 @@ banner() {
     echo -e "${PINK}║${RESET} ${BLUE}1${RESET}  ${WHITE}VM Manager${RESET}                              ${PINK}║${RESET}"
     echo -e "${PINK}║${RESET} ${BLUE}2${RESET}  ${WHITE}Termius Installer${RESET}                      ${PINK}║${RESET}"
     echo -e "${PINK}║${RESET} ${BLUE}3${RESET}  ${WHITE}JTG Installer${RESET}                         ${PINK}║${RESET}"
-    echo -e "${PINK}║${RESET} ${BLUE}4${RESET}  ${WHITE}Exit${RESET}                                  ${PINK}║${RESET}"
+    echo -e "${PINK}║${RESET} ${BLUE}4${RESET}  ${WHITE}Az-Installer${RESET}                          ${PINK}║${RESET}"
+    echo -e "${PINK}║${RESET} ${BLUE}5${RESET}  ${WHITE}Exit${RESET}                                  ${PINK}║${RESET}"
     echo -e "${PINK}╚══════════════════════════════════════════════╝${RESET}"
     echo
 }
@@ -38,7 +39,7 @@ while true; do
     clear
     banner
 
-    echo -ne "${BLUE}╭─[${PINK}KINGCLOUD${BLUE}]${RESET} ${WHITE}Select an option${RESET} ${BLUE}➜ ${RESET}"
+    echo -ne "${BLUE}╭─[${PINK}KINGCLOUD${BLUE}] ${WHITE}Select an option${RESET} ${BLUE}➜ ${RESET}"
     read choice
 
     case "$choice" in
@@ -64,6 +65,13 @@ while true; do
             ;;
 
         4)
+            clear
+            echo -e "${BLUE}Starting ${PINK}Az-Installer${BLUE}...${RESET}"
+            sleep 1
+            bash <(curl -fsSL https://raw.githubusercontent.com/managediscord248-hash/az-panel-installer/refs/heads/main/install.sh)
+            ;;
+
+        5)
             clear
             echo -e "${GOLD}                 ♛${RESET}"
             echo -e "${GOLD}             KINGCLOUD${RESET}"
