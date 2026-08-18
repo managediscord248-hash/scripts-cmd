@@ -100,6 +100,7 @@ apt install -y \
     sudo \
     openssh-server \
     iproute2 \
+    procps \
     >/dev/null 2>&1
 
 # ==========================================================
@@ -131,6 +132,9 @@ fi
 mkdir -p /var/run/tailscale
 mkdir -p /var/lib/tailscale
 mkdir -p /run/sshd
+
+touch "$TS_LOG"
+chmod 600 "$TS_LOG" 2>/dev/null || true
 
 # ==========================================================
 # 👑 CREATE AUTO-START SERVICE
@@ -176,10 +180,6 @@ start_services() {
     # -----------------------------
     # SSH
     # -----------------------------
-
-    if command -v service >/dev/null 2>&1; then
-        service ssh start >/dev/null 2>&1 || true
-    fi
 
     if ! pgrep -x sshd >/dev/null 2>&1; then
         /usr/sbin/sshd >/dev/null 2>&1 || true
@@ -269,7 +269,7 @@ fi
 
 loading "Starting Tailscale"
 
-"$KINGCLOUD_INIT" start
+"$KINGCLOUD_INIT" start >/dev/null 2>&1 || true
 
 sleep 3
 
@@ -292,7 +292,7 @@ else
     echo -e "${YELLOW}  Tailscale authentication required.${RESET}"
     echo
 
-    tailscale up
+    tailscale up >/dev/null 2>&1 || true
 
     sleep 3
 
@@ -325,11 +325,31 @@ UsePAM yes
 Subsystem sftp /usr/lib/openssh/sftp-server
 EOF
 
-if ! /usr/sbin/sshd -t; then
+if ! /usr/sbin/sshd -t >/dev/null 2>&1; then
 
     echo
     echo -e "${RED}  ❌ SSH configuration is invalid.${RESET}"
     exit 1
+
+fi
+
+# ==========================================================
+# RELOAD / START SSH WITHOUT SYSTEMD
+# ==========================================================
+
+if pgrep -x sshd >/dev/null 2>&1; then
+
+    SSH_MASTER_PID="$(pgrep -xo sshd 2>/dev/null || true)"
+
+    if [ -n "$SSH_MASTER_PID" ]; then
+        kill -HUP "$SSH_MASTER_PID" 2>/dev/null || true
+    fi
+
+    sleep 1
+
+else
+
+    /usr/sbin/sshd >/dev/null 2>&1 || true
 
 fi
 
@@ -343,8 +363,10 @@ echo -e "${GRAY}  Enter it below; it will NOT be displayed.${RESET}"
 echo
 
 while true; do
+
     read -r -s -p "  Enter new root password: " ROOT_PASSWORD
     echo
+
     read -r -s -p "  Confirm root password: " ROOT_PASSWORD_CONFIRM
     echo
 
@@ -361,12 +383,35 @@ while true; do
     fi
 
     printf '%s:%s\n' "$ROOT_USER" "$ROOT_PASSWORD" | chpasswd
+
     unset ROOT_PASSWORD
     unset ROOT_PASSWORD_CONFIRM
+
     break
+
 done
 
 echo -e "${GREEN}  ✓ Root password set successfully${RESET}"
+
+# ==========================================================
+# APPLY SSH CONFIG AFTER PASSWORD SET
+# ==========================================================
+
+if pgrep -x sshd >/dev/null 2>&1; then
+
+    SSH_MASTER_PID="$(pgrep -xo sshd 2>/dev/null || true)"
+
+    if [ -n "$SSH_MASTER_PID" ]; then
+        kill -HUP "$SSH_MASTER_PID" 2>/dev/null || true
+    fi
+
+else
+
+    /usr/sbin/sshd >/dev/null 2>&1 || true
+
+fi
+
+sleep 1
 
 # ==========================================================
 # START SSH
@@ -374,7 +419,9 @@ echo -e "${GREEN}  ✓ Root password set successfully${RESET}"
 
 loading "Starting SSH"
 
-"$KINGCLOUD_INIT" start
+if ! pgrep -x sshd >/dev/null 2>&1; then
+    /usr/sbin/sshd >/dev/null 2>&1 || true
+fi
 
 sleep 2
 
