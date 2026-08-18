@@ -227,27 +227,48 @@ start_tailscale() {
     fi
 }
 
+ssh_listening() {
+    if command -v ss >/dev/null 2>&1; then
+        ss -tln 2>/dev/null | grep -q ':22[[:space:]]'
+    else
+        grep -q ':0016 ' /proc/net/tcp 2>/dev/null
+    fi
+}
+
 start_ssh() {
 
     mkdir -p /run/sshd
 
     # -----------------------------
-    # Reload safely if already running (does not drop active
-    # sessions), otherwise start directly. No systemctl, ever.
+    # Reload safely only if the pidfile's process is alive AND sshd is
+    # actually listening on :22 (preserves active sessions). Otherwise
+    # force a clean start — pgrep alone can match a zombie/dead sshd
+    # and falsely look "up" while nothing is listening. No systemctl.
     # -----------------------------
 
-    if [ -f "$SSHD_PIDFILE" ] && kill -0 "$(cat "$SSHD_PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    if [ -f "$SSHD_PIDFILE" ] && kill -0 "$(cat "$SSHD_PIDFILE" 2>/dev/null)" 2>/dev/null && ssh_listening; then
 
         kill -HUP "$(cat "$SSHD_PIDFILE")" >/dev/null 2>&1 || true
 
-    elif pgrep -x sshd >/dev/null 2>&1; then
-
-        MASTER_PID="$(pgrep -x sshd | sort -n | head -n1)"
-        kill -HUP "$MASTER_PID" >/dev/null 2>&1 || true
-
     else
 
-        /usr/sbin/sshd >/dev/null 2>&1 || true
+        pkill -x sshd >/dev/null 2>&1 || true
+        sleep 1
+
+        # Let sshd stay in the foreground (-D) and detach it ourselves
+        # with nohup+disown+redirected stdin. In this container, sshd's
+        # own self-daemonizing double-fork does not reliably survive
+        # the invoking script/shell exiting, which silently left no
+        # listener behind even though the launch command "succeeded".
+        nohup /usr/sbin/sshd -D >/dev/null 2>&1 </dev/null &
+        disown "$!" 2>/dev/null || true
+
+        # Wait for sshd to actually bind :22 instead of assuming
+        # the launch succeeded.
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            ssh_listening && break
+            sleep 1
+        done
 
     fi
 }
@@ -280,13 +301,13 @@ status_services() {
     echo
     echo "========== KINGCLOUD STATUS =========="
 
-    if pgrep -x tailscaled >/dev/null 2>&1; then
+    if pgrep -x tailscaled >/dev/null 2>&1 && [ -S "$TS_SOCKET" ] && tailscale --socket="$TS_SOCKET" status >/dev/null 2>&1; then
         echo "Tailscale : RUNNING"
     else
         echo "Tailscale : STOPPED"
     fi
 
-    if pgrep -x sshd >/dev/null 2>&1; then
+    if ssh_listening; then
         echo "SSH       : RUNNING"
     else
         echo "SSH       : STOPPED"
