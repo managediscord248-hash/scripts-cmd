@@ -41,7 +41,7 @@ fi
 clear 2>/dev/null || true
 
 # ==========================================================
-# 👑 KINGCLOUD HEADER — FULL ASCII BANNER
+# 👑 KINGCLOUD HEADER
 # ==========================================================
 
 echo
@@ -56,12 +56,98 @@ echo -e "${WHITE}                TERMIUS • SSH • TAILSCALE${RESET}"
 echo -e "${NAVY}                NO SYSTEMD • ${MAGENTA}PANEL${RESET}"
 echo -e "${SAFFRON}                ━━━━━━━━━━━━━${WHITE}━━━━━━━━━━━━${GREEN}━━━━━━━━━━━━${RESET}"
 echo
-
 echo -e "${CYAN}               👑 KINGCLOUD • TERMIUS 👑${RESET}"
 echo -e "${GRAY}            ───────────────────────────${RESET}"
 echo
 echo -e "${SAFFRON}       ●${WHITE} ●${GREEN} ●${NAVY} ●${CYAN} ●${MAGENTA} ●${RESET}"
 echo
+
+# ==========================================================
+# MENU
+# ==========================================================
+
+echo -e "${CYAN}╔══════════════════════════════════════════════╗${RESET}"
+echo -e "${CYAN}║${RESET}              ${WHITE}TERMIUS MENU${RESET}                  ${CYAN}║${RESET}"
+echo -e "${CYAN}╠══════════════════════════════════════════════╣${RESET}"
+echo -e "${CYAN}║${RESET}                                              ${CYAN}║${RESET}"
+echo -e "${CYAN}║${RESET}  ${GREEN}1)${RESET} Install & Run                           ${CYAN}║${RESET}"
+echo -e "${CYAN}║${RESET}  ${RED}2)${RESET} Delete                                 ${CYAN}║${RESET}"
+echo -e "${CYAN}║${RESET}  ${YELLOW}3)${RESET} Exit                                   ${CYAN}║${RESET}"
+echo -e "${CYAN}║${RESET}                                              ${CYAN}║${RESET}"
+echo -e "${CYAN}╚══════════════════════════════════════════════╝${RESET}"
+echo
+
+read -r -p "  Enter choice [1-3]: " MENU_CHOICE
+
+case "$MENU_CHOICE" in
+
+    1)
+        clear 2>/dev/null || true
+        ;;
+
+    2)
+        clear 2>/dev/null || true
+
+        echo
+        echo -e "${RED}  ⚠ KINGCLOUD TERMIUS DELETE${RESET}"
+        echo
+        echo -e "${WHITE}  This will remove:${RESET}"
+        echo -e "${GRAY}  • /etc/init.d/kingcloud${RESET}"
+        echo -e "${GRAY}  • KingCloud Tailscale log${RESET}"
+        echo -e "${GRAY}  • KingCloud boot registration${RESET}"
+        echo
+        echo -e "${YELLOW}  Tailscale package and Tailscale state will NOT be deleted.${RESET}"
+        echo
+
+        read -r -p "  Type DELETE to confirm: " DELETE_CONFIRM
+
+        if [ "$DELETE_CONFIRM" != "DELETE" ]; then
+            echo
+            echo -e "${YELLOW}  Cancelled.${RESET}"
+            exit 0
+        fi
+
+        echo
+        echo -e "${CYAN}  Removing KingCloud Termius...${RESET}"
+
+        if command -v update-rc.d >/dev/null 2>&1; then
+            update-rc.d -f kingcloud remove >/dev/null 2>&1 || true
+        fi
+
+        if command -v rc-update >/dev/null 2>&1; then
+            rc-update del kingcloud default >/dev/null 2>&1 || true
+        fi
+
+        if [ -f "$KINGCLOUD_INIT" ]; then
+            "$KINGCLOUD_INIT" stop >/dev/null 2>&1 || true
+        fi
+
+        rm -f "$KINGCLOUD_INIT"
+        rm -f "$TS_LOG"
+
+        echo
+        echo -e "${GREEN}  ✓ KingCloud Termius deleted successfully.${RESET}"
+        echo -e "${GRAY}  Tailscale installation/state was preserved.${RESET}"
+        echo
+        exit 0
+        ;;
+
+    3)
+        clear 2>/dev/null || true
+        echo
+        echo -e "${GREEN}  👑 KingCloud Termius closed.${RESET}"
+        echo
+        exit 0
+        ;;
+
+    *)
+        echo
+        echo -e "${RED}  ❌ Invalid choice. Please select 1, 2 or 3.${RESET}"
+        echo
+        exit 1
+        ;;
+
+esac
 
 # ==========================================================
 # LOADING
@@ -163,10 +249,6 @@ start_services() {
     mkdir -p /var/lib/tailscale
     mkdir -p /run/sshd
 
-    # -----------------------------
-    # TAILSCALE
-    # -----------------------------
-
     if ! pgrep -x tailscaled >/dev/null 2>&1; then
 
         /usr/sbin/tailscaled \
@@ -176,10 +258,6 @@ start_services() {
 
         sleep 3
     fi
-
-    # -----------------------------
-    # SSH
-    # -----------------------------
 
     if ! pgrep -x sshd >/dev/null 2>&1; then
         /usr/sbin/sshd >/dev/null 2>&1 || true
@@ -442,7 +520,7 @@ else
 fi
 
 # ==========================================================
-# 👑 FINAL SCREEN — FULL ASCII BANNER
+# 👑 FINAL SCREEN
 # ==========================================================
 
 clear 2>/dev/null || true
