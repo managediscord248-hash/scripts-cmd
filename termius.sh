@@ -178,24 +178,39 @@ SSHD_PIDFILE="/run/sshd.pid"
 
 TS_SOCKET="/var/run/tailscale/tailscaled.sock"
 
+# A crashed tailscaled can linger as a <defunct> zombie in this kind
+# of container (nothing reaps orphans). pgrep still matches zombies
+# by name, which falsely makes the daemon look "running" forever and
+# blocks it from ever being (re)started. Ignore zombie-state pids.
+tailscaled_running() {
+    pid_list="$(pgrep -x tailscaled 2>/dev/null)"
+    [ -z "$pid_list" ] && return 1
+    for pid in $pid_list; do
+        state="$(ps -o stat= -p "$pid" 2>/dev/null | tr -d ' ')"
+        case "$state" in
+            Z*) ;;
+            *) return 0 ;;
+        esac
+    done
+    return 1
+}
+
 start_tailscale() {
 
     mkdir -p /var/run/tailscale
     mkdir -p /var/lib/tailscale
 
-    # A tailscaled process can be "running" (per pgrep) while its
-    # control socket is gone or unreachable, e.g. after the /run
-    # tmpfs was reset. tailscale CLI calls then fail with
-    # "no such file or directory" even though a pid still shows up.
-    # Treat that case as dead and restart cleanly instead of skipping.
-    if pgrep -x tailscaled >/dev/null 2>&1; then
+    # If a live (non-zombie) tailscaled is up but its control socket
+    # is gone or unreachable, e.g. after the /run tmpfs was reset,
+    # kill it and restart cleanly instead of skipping.
+    if tailscaled_running; then
         if [ ! -S "$TS_SOCKET" ] || ! tailscale --socket="$TS_SOCKET" status >/dev/null 2>&1; then
             pkill -x tailscaled >/dev/null 2>&1 || true
             sleep 1
         fi
     fi
 
-    if ! pgrep -x tailscaled >/dev/null 2>&1; then
+    if ! tailscaled_running; then
 
         /usr/sbin/tailscaled \
             --tun=userspace-networking \
