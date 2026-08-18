@@ -11,6 +11,7 @@ TS_STATE="/var/lib/tailscale/tailscaled.state"
 TS_LOG="/var/log/kingcloud-tailscaled.log"
 TS_DATA_DIR="/var/lib/tailscale"
 TS_RUNTIME_DIR="/var/run/tailscale"
+TS_SOCKET="/var/run/tailscale/tailscaled.sock"
 SSHD_PIDFILE="/run/sshd.pid"
 
 ROOT_USER="root"
@@ -41,30 +42,33 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-clear 2>/dev/null || true
-
 # ==========================================================
 # 👑 KINGCLOUD HEADER — FULL ASCII BANNER
 # ==========================================================
 
-echo
-echo -e "${SAFFRON}  █   █ █████ █   █  ███   ████ █      ███  █   █ ████${RESET}"
-echo -e "${SAFFRON}  █  █    █   ██  █ █     █     █     █   █ █   █ █   █${RESET}"
-echo -e "${WHITE}  ███     █   █ █ █ █  ██ █     █     █   █ █   █ █   █${RESET}"
-echo -e "${GREEN}  █  █    █   █  ██ █   █ █     █     █   █ █   █ █   █${RESET}"
-echo -e "${GREEN}  █   █ █████ █   █  ███   ████ █████  ███   ███  ████${RESET}"
-echo
-echo -e "${SAFFRON}                ━━━━━━━━━━━━━${WHITE}━━━━━━━━━━━━${GREEN}━━━━━━━━━━━━${RESET}"
-echo -e "${WHITE}                TERMIUS • SSH • TAILSCALE${RESET}"
-echo -e "${NAVY}                NO SYSTEMD • ${MAGENTA}PANEL${RESET}"
-echo -e "${SAFFRON}                ━━━━━━━━━━━━━${WHITE}━━━━━━━━━━━━${GREEN}━━━━━━━━━━━━${RESET}"
-echo
+show_banner() {
+    echo
+    echo -e "${SAFFRON}  █   █ █████ █   █  ███   ████ █      ███  █   █ ████${RESET}"
+    echo -e "${SAFFRON}  █  █    █   ██  █ █     █     █     █   █ █   █ █   █${RESET}"
+    echo -e "${WHITE}  ███     █   █ █ █ █  ██ █     █     █   █ █   █ █   █${RESET}"
+    echo -e "${GREEN}  █  █    █   █  ██ █   █ █     █     █   █ █   █ █   █${RESET}"
+    echo -e "${GREEN}  █   █ █████ █   █  ███   ████ █████  ███   ███  ████${RESET}"
+    echo
+    echo -e "${SAFFRON}                ━━━━━━━━━━━━━${WHITE}━━━━━━━━━━━━${GREEN}━━━━━━━━━━━━${RESET}"
+    echo -e "${WHITE}                TERMIUS • SSH • TAILSCALE${RESET}"
+    echo -e "${NAVY}                NO SYSTEMD • ${MAGENTA}PANEL${RESET}"
+    echo -e "${SAFFRON}                ━━━━━━━━━━━━━${WHITE}━━━━━━━━━━━━${GREEN}━━━━━━━━━━━━${RESET}"
+    echo
 
-echo -e "${CYAN}               👑 KINGCLOUD • TERMIUS 👑${RESET}"
-echo -e "${GRAY}            ───────────────────────────${RESET}"
-echo
-echo -e "${SAFFRON}       ●${WHITE} ●${GREEN} ●${NAVY} ●${CYAN} ●${MAGENTA} ●${RESET}"
-echo
+    echo -e "${CYAN}               👑 KINGCLOUD • TERMIUS 👑${RESET}"
+    echo -e "${GRAY}            ───────────────────────────${RESET}"
+    echo
+    echo -e "${SAFFRON}       ●${WHITE} ●${GREEN} ●${NAVY} ●${CYAN} ●${MAGENTA} ●${RESET}"
+    echo
+}
+
+clear 2>/dev/null || true
+show_banner
 
 # ==========================================================
 # LOADING
@@ -172,19 +176,39 @@ TS_STATE="/var/lib/tailscale/tailscaled.state"
 TS_LOG="/var/log/kingcloud-tailscaled.log"
 SSHD_PIDFILE="/run/sshd.pid"
 
+TS_SOCKET="/var/run/tailscale/tailscaled.sock"
+
 start_tailscale() {
 
     mkdir -p /var/run/tailscale
     mkdir -p /var/lib/tailscale
+
+    # A tailscaled process can be "running" (per pgrep) while its
+    # control socket is gone or unreachable, e.g. after the /run
+    # tmpfs was reset. tailscale CLI calls then fail with
+    # "no such file or directory" even though a pid still shows up.
+    # Treat that case as dead and restart cleanly instead of skipping.
+    if pgrep -x tailscaled >/dev/null 2>&1; then
+        if [ ! -S "$TS_SOCKET" ] || ! tailscale --socket="$TS_SOCKET" status >/dev/null 2>&1; then
+            pkill -x tailscaled >/dev/null 2>&1 || true
+            sleep 1
+        fi
+    fi
 
     if ! pgrep -x tailscaled >/dev/null 2>&1; then
 
         /usr/sbin/tailscaled \
             --tun=userspace-networking \
             --state="$TS_STATE" \
+            --socket="$TS_SOCKET" \
             >>"$TS_LOG" 2>&1 &
 
-        sleep 3
+        # Wait for the control socket to actually appear instead of
+        # a flat sleep, so we don't race a slow-starting daemon.
+        for _ in 1 2 3 4 5 6 7 8 9 10; do
+            [ -S "$TS_SOCKET" ] && break
+            sleep 1
+        done
     fi
 }
 
@@ -321,7 +345,7 @@ INITEOF
     # EXISTING TAILSCALE CHECK
     # ==========================================================
 
-    TS_IP="$(tailscale ip -4 2>/dev/null || true)"
+    TS_IP="$(tailscale --socket="$TS_SOCKET" ip -4 2>/dev/null || true)"
 
     if [ -n "$TS_IP" ]; then
 
@@ -336,11 +360,11 @@ INITEOF
         echo -e "${YELLOW}  Tailscale authentication required.${RESET}"
         echo
 
-        tailscale up
+        tailscale --socket="$TS_SOCKET" up
 
         sleep 3
 
-        TS_IP="$(tailscale ip -4 2>/dev/null || true)"
+        TS_IP="$(tailscale --socket="$TS_SOCKET" ip -4 2>/dev/null || true)"
 
     fi
 
@@ -573,11 +597,15 @@ while true; do
     case "$MENU_CHOICE" in
 
         1)
+            clear 2>/dev/null || true
+            show_banner
             install_and_run
             break
             ;;
 
         2)
+            clear 2>/dev/null || true
+            show_banner
             delete_kingcloud
             break
             ;;
